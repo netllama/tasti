@@ -1,6 +1,6 @@
 Tasti - a social bookmarking web application written in PHP
 
-Tasi is a social bookmarking web application written PHP, which uses a 
+Tasti is a social bookmarking web application written PHP, which uses a 
 PostgreSQL database backend.  It was conceived following the aftermath of 
 Yahoo's "Delicious Sunsetting" fiasco, when I decided that I could no longer
 trust any third party to store my bookmarks.  I'm developing Tasti in my 
