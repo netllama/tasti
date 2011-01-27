@@ -249,13 +249,36 @@ function edit_bmarks(){
 // show bookmarks
 function show_bmarks(){
 	global $db ;
+	$a5_marker='' ; $a10_marker='' ; $a15_marker='' ; $a20_marker='' ; $a30_marker='' ;
+	if(isset($_GET['num']) && is_numeric($_GET['num'])){
+		$user_num_bmarks=$_GET['num'] ;
+		$limit_sql=' LIMIT ' . $user_num_bmarks ;
+		if($user_num_bmarks=='5'){
+			$a5_marker='*&nbsp;' ;
+		}elseif($user_num_bmarks=='10'){
+			$a10_marker='*&nbsp;' ;
+		}elseif($user_num_bmarks=='15'){
+			$a15_marker='*&nbsp;' ;
+		}elseif($user_num_bmarks=='20'){
+			$a20_marker='*&nbsp;' ;
+		}elseif($user_num_bmarks=='30'){
+			$a30_marker='*&nbsp;' ;
+		}
+	}else{
+		$user_num_bmarks='' ;
+		$limit_sql=' LIMIT 20' ;
+	}
 	if(isset($_GET['whose']) && $_GET['whose']=='mine' && hash_check()){
 		$username=$_COOKIE['tasti_username'] ;
-		$bmarks_intro='<span class="huge">Your bookmarks:</span><BR><BR><HR><BR>' ;
-		$bmarks_sql="SELECT distinct ON (url) url,id,date(last_update) AS last_update,notes,name,owner FROM bmarks WHERE owner='$username' ORDER BY url,last_update" ;
+		$url_get_base=basename($_SERVER['REQUEST_URI']) . '&' ;
+		$num_bmarks_menu_offset='77' ;
+		$bmarks_intro='<span class="huge">Your bookmarks:</span><BR><BR>' ;
+		$bmarks_sql="SELECT distinct ON (url) url,id,date(last_update) AS last_update,notes,name,owner FROM bmarks WHERE owner='$username' ORDER BY url,last_update" . $limit_sql;
 	}else{
-		$bmarks_intro='<span class="huge">Recent bookmarks:</span><BR><BR><HR><BR>' ;
-		$bmarks_sql="SELECT distinct ON (url) url,id,date(last_update) AS last_update,notes,name,owner FROM bmarks ORDER BY url,last_update" ;
+		$num_bmarks_menu_offset='73' ;
+		$url_get_base=basename($_SERVER['REQUEST_URI']) . '?' ;
+		$bmarks_intro='<span class="huge">Recent bookmarks:</span><BR><BR>' ;
+		$bmarks_sql="SELECT distinct ON (url) url,id,date(last_update) AS last_update,notes,name,owner FROM bmarks ORDER BY url,last_update" . $limit_sql;
 	}
 	$bmarks_qry=pg_query($db,$bmarks_sql) ;
 	if(!$bmarks_qry){
@@ -265,7 +288,20 @@ function show_bmarks(){
 	}else{
 		$num_bmarks=pg_num_rows($bmarks_qry) ;
 		if($num_bmarks>0){
-			echo $bmarks_intro ;
+			echo '<TABLE><TR><TD>' . $bmarks_intro . '</TD>' ;
+			// only render the bmarks/page menu on the 'MY BOOKMARKS' page
+			if($num_bmarks_menu_offset=='77'){
+				echo '<TD width="' . $num_bmarks_menu_offset . '%">&nbsp;</TD><TD align="center" valign="top"><div id="menu">
+				<UL id="item1">
+				<LI class="top"><B>Bookmarks/page</B></LI>
+					<LI class="item"><A HREF="' . $url_get_base . 'num=5">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' . $a5_marker . '5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></LI>
+					<LI class="item"><A HREF="' . $url_get_base . 'num=10">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' . $a10_marker . '10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></LI>
+					<LI class="item"><A HREF="' . $url_get_base . 'num=15">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' . $a15_marker . '15&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></LI>
+					<LI class="item"><A HREF="' . $url_get_base . 'num=20">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' . $a20_marker . '20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></LI>
+					<LI class="item"><A HREF="' . $url_get_base . 'num=30">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' . $a30_marker . '30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></LI></UL>
+				</DIV>&nbsp;</TD>' ;
+			}
+			echo '</TR></TABLE>' ;
 			for($lt=0; $lt < $num_bmarks ; $lt++){
 				$url=pg_result($bmarks_qry,$lt,0) ;
 				$id=pg_result($bmarks_qry,$lt,1) ;

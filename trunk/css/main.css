@@ -191,11 +191,40 @@ img {
 	font-size: 8px ;
 }
 input {
-	background-color: #939393 ;
+	background-color: #646464 ;
 	color: #C1C34B;
 	font-weight: bold;
 }
 .bad {
 	color: red;
 	font-weight: bold;
+}
+
+#menu {
+	position:absolute;
+	margin-top:0px;
+}
+#menu ul .item {
+	display:none;
+}
+#menu ul:hover .item {
+	display:block;
+	background:#646464;
+	padding:1px;
+	margin:1px;
+}
+#menu ul:hover .item a {
+	color:#fff;
+	text-decoration:none;
+}
+#menu ul:hover .item a:hover {
+	color:#C1C34B;
+}
+#menu ul {
+	width:110px;
+	float:left;
+	margin:0px;
+	padding:2px;
+	background:#89997B;
+	list-style:none;
 }
