@@ -357,6 +357,8 @@ function show_bmarks(){
 						echo '&nbsp;</TD>' ;
 					}
 					echo '</TR></TABLE><HR><BR>' ;
+					
+					// pagination
 				}
 			}
 		}else{
@@ -378,6 +380,8 @@ function show_tags(){
 		$username=$_COOKIE['tasti_username'] ;
 		if(isset($_GET['mine']) && $_GET['mine']=='yes'){
 			$show_mine="AND owner='$username'" ;
+			$url_get_base=basename($_SERVER['REQUEST_URI']) . '&' ;
+			$num_bmarks_menu_offset='47' ;
 		}else{
 			$show_mine='' ;
 		}
@@ -405,12 +409,31 @@ function show_tags(){
 	}else{
 		$tag_count=pg_num_rows($tags_qry) ;
 		if($tag_count>0){
+			$a5_marker='' ; $a10_marker='' ; $a15_marker='' ; $a20_marker='' ; $a30_marker='' ;
+			if(isset($_GET['num']) && is_numeric($_GET['num'])){
+				$user_num_bmarks=$_GET['num'] ;
+				$limit_sql=' LIMIT ' . $user_num_bmarks ;
+				if($user_num_bmarks=='5'){
+					$a5_marker='*&nbsp;' ;
+				}elseif($user_num_bmarks=='10'){
+					$a10_marker='*&nbsp;' ;
+				}elseif($user_num_bmarks=='15'){
+					$a15_marker='*&nbsp;' ;
+				}elseif($user_num_bmarks=='20'){
+					$a20_marker='*&nbsp;' ;
+				}elseif($user_num_bmarks=='30'){
+					$a30_marker='*&nbsp;' ;
+				}
+			}else{
+				$user_num_bmarks='' ;
+				$limit_sql=' LIMIT 20' ;
+			}
 			$tag=htmlentities(pg_result($tags_qry,0,0)) ;
 			$bmark_sql="SELECT id,date(last_update) as last_update,owner,url,notes,name FROM bmarks WHERE tag='$tag' " ;
 			if(isset($username) && isset($_GET['mine']) && $_GET['mine']=='yes'){
 				$bmark_sql.=" AND owner='$username' " ;
 			}
-			$bmark_sql.="ORDER BY owner,last_update,name" ;
+			$bmark_sql.='ORDER BY owner,last_update,name' . $limit_sql ;
 			$bmark_qry=pg_query($db,$bmark_sql) ;
 			if(!$bmark_qry){
 				echo '<span class="bad">Bookmark query FAILED: <BR>' ;
@@ -418,7 +441,21 @@ function show_tags(){
 			}else{
 				$num_bmarks=pg_num_rows($bmark_qry) ;
 				if($num_bmarks>0){
-					echo '<span class="huge">Bookmarks tagged with <B>' . $tag . '</B></span><HR><BR>' ;
+					echo '<TABLE width="100%"><TR><TD width="85%"><span class="huge">Bookmarks tagged with <B>' . $tag . '</B></span></TD>' ;
+					// only render the bmarks/page menu on the 'MY BOOKMARKS' page
+					if($num_bmarks_menu_offset=='47'){
+						echo '<TD width="70%" align="center" valign="top"><div id="menu">
+						<UL id="item1">
+						<LI class="top"><B>Bookmarks/page</B></LI>
+							<LI class="item"><A HREF="' . $url_get_base . 'num=5">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' . $a5_marker . '5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></LI>
+							<LI class="item"><A HREF="' . $url_get_base . 'num=10">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' . $a10_marker . '10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></LI>
+							<LI class="item"><A HREF="' . $url_get_base . 'num=15">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' . $a15_marker . '15&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></LI>
+							<LI class="item"><A HREF="' . $url_get_base . 'num=20">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' . $a20_marker . '20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></LI>
+							<LI class="item"><A HREF="' . $url_get_base . 'num=30">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' . $a30_marker . '30&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a></LI></UL>
+						</DIV></TD>' ;
+					}
+					echo '</TR></TABLE>' ;
+					echo '<HR><BR>' ;
 					for($lt=0; $lt < $num_bmarks ; $lt++){
 						$id=pg_result($bmark_qry,$lt,0) ;
 						$last_update=pg_result($bmark_qry,$lt,1) ;
