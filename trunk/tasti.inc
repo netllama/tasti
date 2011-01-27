@@ -265,27 +265,38 @@ function show_bmarks(){
 			$a30_marker='*&nbsp;' ;
 		}
 	}else{
-		$user_num_bmarks='' ;
+		$user_num_bmarks='20' ;
 		$limit_sql=' LIMIT 20' ;
 	}
+	// pagination setup
+	$page=(!isset($_GET['page']))? 1 : $_GET['page'] ;  
+        $prev=($page - 1) ;
+        $next=($page + 1) ; 
+        $max_results=$user_num_bmarks ; 
+	// Calculate the offset 
+        $from=(($page * $max_results) - $max_results) ;
+	
 	if(isset($_GET['whose']) && $_GET['whose']=='mine' && hash_check()){
 		$username=$_COOKIE['tasti_username'] ;
 		$url_get_base=basename($_SERVER['REQUEST_URI']) . '&' ;
 		$num_bmarks_menu_offset='77' ;
 		$bmarks_intro='<span class="huge">Your bookmarks:</span><BR><BR>' ;
-		$bmarks_sql="SELECT distinct ON (url) url,id,date(last_update) AS last_update,notes,name,owner FROM bmarks WHERE owner='$username' ORDER BY url,last_update" . $limit_sql;
+		$bmarks_sql_all="SELECT distinct ON (url) url,id,date(last_update) AS last_update,notes,name,owner FROM bmarks WHERE owner='$username' ORDER BY	url,last_update" ;
 	}else{
 		$num_bmarks_menu_offset='73' ;
 		$url_get_base=basename($_SERVER['REQUEST_URI']) . '?' ;
 		$bmarks_intro='<span class="huge">Recent bookmarks:</span><BR><BR>' ;
-		$bmarks_sql="SELECT distinct ON (url) url,id,date(last_update) AS last_update,notes,name,owner FROM bmarks ORDER BY url,last_update" . $limit_sql;
+		$bmarks_sql_all="SELECT distinct ON (url) url,id,date(last_update) AS last_update,notes,name,owner FROM bmarks ORDER BY url,last_update" ;
 	}
+	$bmarks_sql=$bmarks_sql_all . $limit_sql . ' OFFSET ' . $from ;
 	$bmarks_qry=pg_query($db,$bmarks_sql) ;
 	if(!$bmarks_qry){
 		echo '<span class="bad">Bookmark query FAILED: <BR>' ;
                 echo pg_last_error() . '</span><BR><BR>';
                 exit() ;
 	}else{
+		$bmarks_qry_all=pg_query($db,$bmarks_sql_all) ;
+		$num_bmarks_all=pg_num_rows($bmarks_qry_all) ;
 		$num_bmarks=pg_num_rows($bmarks_qry) ;
 		if($num_bmarks>0){
 			echo '<TABLE><TR><TD>' . $bmarks_intro . '</TD>' ;
@@ -357,10 +368,37 @@ function show_bmarks(){
 						echo '&nbsp;</TD>' ;
 					}
 					echo '</TR></TABLE><HR><BR>' ;
-					
-					// pagination
 				}
 			}
+
+			// pagination settings
+			$my_row_count=$num_bmarks_all ;
+			$total_pages=ceil($my_row_count / $max_results) ;
+			$pagination = '' ; 
+
+			// Create a PREV link if one is needed 
+                        if($page > 1) {
+				$pagination.='<A STYLE="text-decoration:none" title="PREVIOUS PAGE" HREF="bmarks.php?whose=mine&page=' . $prev . '&num=' . $user_num_bmarks;
+				$pagination .= '"><span class="huge"><H1>&larr;</H1></span></A> ' ;
+			}
+
+			// Create a NEXT link if one is needed
+                        if($page < $total_pages){
+				$pagination .= '<A STYLE="text-decoration:none" title="NEXT PAGE" HREF="bmarks.php?whose=mine&page=' . $next . '&num=' . $user_num_bmarks;  ;
+				$pagination .= '"><span class="huge"><H1>&rarr;</H1></span></A>' ;
+			}else{
+                                // adjust the total count when on the last page since it might not have $user_num_bmarks items remaining
+                                $new_max_results = ($max_results - (($page * $max_results) - $my_row_count)) ;
+                                $max_results=$new_max_results ;
+                        }
+			if($my_row_count>1){
+				$plural='s' ;
+			}else{
+				$plural='' ;
+			}
+
+			echo '<TABLE width="100%"><TR COLSPAN="1"><TD>&nbsp;</TD></TR><TR><TD COLSPAN="9">&nbsp;' . $my_row_count . ' bookmark' . $plural . ' total</TD><TD
+			class="page" COLSPAN="4"><B>' . $pagination . '</B></TD></TR></TABLE><BR>' ;
 		}else{
 			echo '<BR>There are currently no bookmarks<BR><BR>' ;
 		}
