@@ -397,7 +397,7 @@ function show_bmarks(){
 				$plural='' ;
 			}
 
-			echo '<TABLE width="100%"><TR COLSPAN="1"><TD>&nbsp;</TD></TR><TR><TD COLSPAN="9">&nbsp;' . $my_row_count . ' bookmark' . $plural . ' total</TD><TD
+			echo '<TABLE width="100%"><TR COLSPAN="1"><TD>&nbsp;</TD></TR><TR><TD COLSPAN="9">&nbsp;' . $my_row_count . ' Tasti bookmark' . $plural . '</TD><TD
 			class="page" COLSPAN="4"><B>' . $pagination . '</B></TD></TR></TABLE><BR>' ;
 		}else{
 			echo '<BR>There are currently no bookmarks<BR><BR>' ;
@@ -408,8 +408,13 @@ function show_bmarks(){
 // show tags
 function show_tags(){
 	global $db ;
+	$num_bmarks_menu_offset='' ;
+	$show_mine='' ;
+	$tag_get='' ;
+	
 	if(isset($_GET['id'])){
 		$tagid=$_GET['id'] ;
+		$tag_get='&id=' . $tagid ;
 	}
 
 	$tags_sql="SELECT tag FROM tags " ;
@@ -420,15 +425,11 @@ function show_tags(){
 			$show_mine="AND owner='$username'" ;
 			$url_get_base=basename($_SERVER['REQUEST_URI']) . '&' ;
 			$num_bmarks_menu_offset='47' ;
-		}else{
-			$show_mine='' ;
 		}
 		if(isset($tagid)){
 			$tagid=$_GET['id'] ;
-			//$tags_sql.="WHERE owner='$username' AND id='$tagid' LIMIT 1" ;
 			$tags_sql.="WHERE id='$tagid' " . $show_mine . " LIMIT 1" ;
 		}else{
-			//$tags_sql.="WHERE owner='$username' ORDER BY id DESC LIMIT 1" ;
 			$tags_sql.="WHERE true=true " . $show_mine . " ORDER BY id DESC LIMIT 1" ;
 		}
 	}else{
@@ -463,20 +464,34 @@ function show_tags(){
 					$a30_marker='*&nbsp;' ;
 				}
 			}else{
-				$user_num_bmarks='' ;
+				$user_num_bmarks='20' ;
 				$limit_sql=' LIMIT 20' ;
 			}
+			// pagination setup
+			$page=(!isset($_GET['page']))? 1 : $_GET['page'] ;  
+        		$prev=($page - 1) ;
+        		$next=($page + 1) ; 
+        		$max_results=$user_num_bmarks ; 
+			// Calculate the offset 
+        		$from=(($page * $max_results) - $max_results) ;
+			
 			$tag=htmlentities(pg_result($tags_qry,0,0)) ;
 			$bmark_sql="SELECT id,date(last_update) as last_update,owner,url,notes,name FROM bmarks WHERE tag='$tag' " ;
 			if(isset($username) && isset($_GET['mine']) && $_GET['mine']=='yes'){
 				$bmark_sql.=" AND owner='$username' " ;
+				$mine='&mine=yes' ;
+			}else{
+				$mine='' ;
 			}
-			$bmark_sql.='ORDER BY owner,last_update,name' . $limit_sql ;
+			$bmarks_sql_all=$bmark_sql . 'ORDER BY owner,last_update,name' ;
+			$bmark_sql=$bmarks_sql_all . $limit_sql . ' OFFSET ' . $from ;
 			$bmark_qry=pg_query($db,$bmark_sql) ;
 			if(!$bmark_qry){
 				echo '<span class="bad">Bookmark query FAILED: <BR>' ;
                 		echo pg_last_error() . '</span><BR><BR>';
 			}else{
+				$bmarks_qry_all=pg_query($db,$bmarks_sql_all) ;
+				$num_bmarks_all=pg_num_rows($bmarks_qry_all) ;
 				$num_bmarks=pg_num_rows($bmark_qry) ;
 				if($num_bmarks>0){
 					echo '<TABLE width="100%"><TR><TD width="85%"><span class="huge">Bookmarks tagged with <B>' . $tag . '</B></span></TD>' ;
@@ -515,6 +530,34 @@ function show_tags(){
 						echo '<TABLE><TR><TD valign="top"><span class="big">' . $last_update . '&nbsp;&nbsp;&nbsp;</span></TD><TD><span class="big"><A HREF="' . $url . '">' . $name . '</a></span>' . $notes_string . $bmark_user_edit_string . '</TD>'  ;
 						echo '</TR></TABLE><HR><BR>' ;
 					}
+					// pagination settings
+					$my_row_count=$num_bmarks_all ;
+					$total_pages=ceil($my_row_count / $max_results) ;
+					$pagination = '' ; 
+
+					// Create a PREV link if one is needed 
+                        		if($page > 1) {
+						$pagination.='<A STYLE="text-decoration:none" title="PREVIOUS PAGE" HREF="tags.php?page=' . $prev . '&num=' . $user_num_bmarks . $mine . $tag_get;
+						$pagination .= '"><span class="huge"><H1>&larr;</H1></span></A> ' ;
+					}
+
+					// Create a NEXT link if one is needed
+                        		if($page < $total_pages){
+						$pagination .= '<A STYLE="text-decoration:none" title="NEXT PAGE" HREF="tags.php?page=' . $next . '&num=' . $user_num_bmarks . $mine . $tag_get; 
+						$pagination .= '"><span class="huge"><H1>&rarr;</H1></span></A>' ;
+					}else{
+                                		// adjust the total count when on the last page since it might not have $user_num_bmarks items remaining
+                                		$new_max_results = ($max_results - (($page * $max_results) - $my_row_count)) ;
+                                		$max_results=$new_max_results ;
+                        		}
+					if($my_row_count>1){
+						$plural='s' ;
+					}else{
+						$plural='' ;
+					}
+
+					echo '<TABLE width="100%"><TR COLSPAN="1"><TD>&nbsp;</TD></TR><TR><TD COLSPAN="9">&nbsp;' . $my_row_count . ' Tasti bookmark' . $plural . '</TD><TD
+					class="page" COLSPAN="4"><B>' . $pagination . '</B></TD></TR></TABLE><BR>' ;
 				}else{
 					echo '<BR>There are currently no bookmarks associated with the ' . $tag . ' tag.<BR><BR><BR>' ;
 				}
