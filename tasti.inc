@@ -40,7 +40,7 @@ function header0($isAuthenticated=2){
 // page footer
 function footer(){
 	$year=date('Y') ;
-	echo '<span class="footer_class1"><CENTER><A HREF="index.php">HOME</a>&nbsp;|&nbsp;<A HREF="mailto:' . ADMIN_EMAIL . '">HELP</a><BR>Tasti is licensed under the <A HREF="http://www.gnu.org/licenses/gpl.html">GPL</a>.  Copyright ' . $year . '<BR></CENTER></span>' ;
+	echo '<span class="footer_class1"><CENTER><A HREF="index.php">HOME</a>&nbsp;|&nbsp;<A HREF="mailto:' . ADMIN_EMAIL . '">HELP</a><BR><A HREF="https://code.google.com/p/tasti/">Tasti</a> is licensed under the <A HREF="http://www.gnu.org/licenses/gpl.html">GPL</a>.  Copyright ' . $year . '<BR></CENTER></span>' ;
 }
 
 // manage bookmarks
@@ -734,6 +734,15 @@ function account_details_form (){
 		</TABLE></FORM><BR></div>' ;
 }
 
+// bookmark import form
+function bmark_import_form (){
+	echo '<div id="content"><span class="big"><B>Tasti</B> currently supports bulk imports via a bookmarks file (either from your web browser, or from a <A HREF="http://www.delicious.com">Delicious</a> export):</span><BR><BR>' ;
+	echo '<FORM method="POST" action="import.php" id="import" enctype="multipart/form-data"><UL>' ;
+	echo '<LI>&nbsp;Upload a bookmarks file from your web browser:&nbsp;<INPUT TYPE="file" NAME="upload_bmark"><BR>&nbsp;</LI>
+		<LI>&nbsp;<input type="checkbox" name="import_tag">&nbsp;&nbsp;Add the \'imported\' tag to each bookmark<BR>&nbsp;</LI> 
+		</UL><BR><CENTER><INPUT TYPE="submit" NAME="SAVE" value="Import"></CENTER></FORM><BR></div>' ;
+}
+
 // generate the tabs for the acct mgmt page
 function generate_tabs (){
 	$pagename=substr($_SERVER["SCRIPT_NAME"],strrpos($_SERVER["SCRIPT_NAME"],"/")+1) ;
@@ -755,6 +764,123 @@ function generate_tabs (){
 		echo '--></ul>
 		</div>' ;
 	return $pagename ;
+}
+
+// process the bookmark file for import
+function bmark_import_file(){
+	
+	$bmark_array=file(($_FILES['upload_bmark']['tmp_name'])) ;
+	$imported_bmark_count=0 ;
+	$importBad=0 ;
+	foreach($bmark_array as $bmark_row){
+		if(preg_match("/href/i",$bmark_row) && preg_match("/http/i",$bmark_row)){
+			$row_parts=explode('href',strtolower($bmark_row),2) ;
+			foreach($row_parts as $row_part){
+				if(preg_match("/http/i",$row_part)){
+					$url_array=explode('"',trim($row_part)) ;
+					$item_count=count($url_array) - 1 ;
+					$url=$url_array['1'] ;
+					$bmark_name=str_replace('</a>','',preg_replace('/^>/','',$url_array[$item_count])) ;
+
+					// process tags, if they exist
+					if(preg_match('/tags="/',$row_part)){
+						$tag_array=explode('tags="',trim($row_part)) ;
+						$tags0=explode(',',trim(current(explode('"',$tag_array[1])))) ;
+						$tags=array_filter($tags0) ;
+					}else{
+						$tags=array() ;
+					}
+					// add the imported tag
+					if(isset($_POST['import_tag'])){
+						$tags[]='imported' ;
+					}
+					$tags=array_unique($tags) ;
+					$username=$_COOKIE['tasti_username'] ;
+					// drop javascript URLs
+					if(!preg_match('/^javascript:/',$url)){
+						$insertRC=insert_bmark($username,$url,$bmark_name,$tags) ;
+						if($insertRC){
+							$importBad++ ;
+						}else{
+							$imported_bmark_count++ ;
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	echo '<div id="content">' ;
+		if($imported_bmark_count > 0){
+			echo '<BR>&nbsp;<B>SUCCESS!</B><BR><BR>You have imported ' . $imported_bmark_count . ' bookmarks.<BR><BR>Click <A HREF="bmarks.php?whose=mine">here</a> to view them now.<BR><BR>' ;
+			if($importBad>0){
+				echo $importBad . ' bookmark(s) failed to import.<BR><BR>' ;
+			}
+		}else{
+			echo '<BR>&nbsp;No bookmarks were successfully imported.  Please verify that your bookmarks file is valid, and then try again later.<BR><BR>' ;
+		}
+	echo '</div>' ; 
+}
+
+// insert a new bookmark into the database 
+function insert_bmark ($username,$bmark_url,$bmark_name,$bmark_tags_array) {
+	global $db ;
+	$bmark_notes='' ;
+	
+	$tr_status=0 ;
+	$tr_begin=pg_query($db, 'BEGIN;');
+		// insert tags first, if they do not already exist
+		foreach($bmark_tags_array as $tag){
+			$tag=trim($tag) ;
+			$userHasTag_sql="SELECT count(id) FROM tags WHERE owner='$username' AND tag='$tag'" ;
+			$userHasTag_query=pg_query($db,$userHasTag_sql) ;
+			if(!$userHasTag_query){
+				echo '<span class="bad">Tag query FAILED: <BR>' ;
+				echo pg_last_error() . '</span><BR><BR>';
+				$tr_end = pg_query($db,'ROLLBACK;');
+				pg_close($db) ;
+				exit() ;
+			}else{
+				$tag_count=pg_result($userHasTag_query,0,0) ;
+				if($tag_count==0){
+					// if the tag doesn't exist, insert it
+					if(strlen($tag)){
+						$addUserTag_sql="INSERT INTO tags (owner,tag) VALUES ('$username','$tag')" ;
+						$addUserTag_qry=pg_query($db,$addUserTag_sql) ;
+						if(!$addUserTag_qry){
+							echo '<span class="bad">Tag INSERT FAILED: <BR>' ;
+							echo pg_last_error() . '</span><BR><BR>';
+							$tr_end = pg_query($db,'ROLLBACK;');
+							pg_close($db) ;
+							exit() ;
+						}
+					}
+				}
+			}
+			$check_dup_sql="SELECT count(id) FROM bmarks WHERE owner='$username' AND url='$bmark_url' AND tag='$tag'" ;
+			$check_dup_qry=pg_query($db,$check_dup_sql) ;
+			$dup_count=pg_result($check_dup_qry,0,0) ;
+			if($dup_count==0){
+				$addBmark_sql="INSERT INTO bmarks (owner,url,notes,tag,name) VALUES ('$username','$bmark_url','$bmark_notes','$tag','$bmark_name')" ;
+				$addBmark_qry=pg_query($db,$addBmark_sql) ;
+				if(!$addBmark_qry){
+					echo '<span class="bad">Bookmark INSERT FAILED: <BR>' . htmlentities($addBmark_sql) . '<BR>' ;
+					echo pg_last_error() . '</span><BR><BR>';
+					$tr_end = pg_query($db,'ROLLBACK;');
+					pg_close($db) ;
+					exit() ;
+				}
+			}
+		}
+		
+		// rollback everything if any part of the transaction failed
+		if($tr_status){
+			$tr_end = pg_query($db,'ROLLBACK;');
+			pg_close($db) ;
+			exit();
+		}
+	$tr_end=pg_query($db,'COMMIT;');
+	return 0 ;
 }
 
 // account mgmt
@@ -792,7 +918,11 @@ function account_mgmt(){
 		if($pagename=='account.php'){
 			account_details_form() ;
 		}elseif($pagename=='import.php'){
-			echo '<BR><B>Coming Soon</B><BR><BR>' ;
+			if(isset($_FILES['upload_bmark'])){
+				bmark_import_file() ;
+			}else{
+				bmark_import_form() ;
+			}
 		}else{
 			echo '<BR>Unknown function<BR><BR>' ;
 		}
