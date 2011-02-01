@@ -203,6 +203,7 @@ function edit_bmarks_process(){
 			if($tag_count==0){
 				// if the tag doesn't exist, insert it as long as its not just white space
 				if(strlen(trim($tag))){
+					$tag=htmlentities($tag,ENT_QUOTES) ;
 					$addUserTag_sql="INSERT INTO tags (owner,tag) VALUES ('$username','$tag')" ;
 					$addUserTag_qry=pg_query($db,$addUserTag_sql) ;
 					if(!$addUserTag_qry){
@@ -214,6 +215,8 @@ function edit_bmarks_process(){
 				}
 			}
 		}
+		$bmark_notes=htmlentities($bmark_notes,ENT_QUOTES) ;
+		$bmark_name=htmlentities($bmark_name,ENT_QUOTES) ;
 		$addBmark_sql="INSERT INTO bmarks (owner,url,notes,tag,name,created) VALUES ('$username','$bmark_url','$bmark_notes','$tag','$bmark_name','$old_created')" ;
 		$addBmark_qry=pg_query($db,$addBmark_sql) ;
 		if(!$addBmark_qry){
@@ -265,8 +268,8 @@ function show_bmarks(){
 			$a30_marker='*&nbsp;' ;
 		}
 	}else{
-		$user_num_bmarks='20' ;
-		$limit_sql=' LIMIT 20' ;
+		$user_num_bmarks='10' ;
+		$limit_sql=' LIMIT 10' ;
 	}
 	// pagination setup
 	$page=(!isset($_GET['page']))? 1 : $_GET['page'] ;  
@@ -317,8 +320,8 @@ function show_bmarks(){
 				$url=pg_result($bmarks_qry,$lt,0) ;
 				$id=pg_result($bmarks_qry,$lt,1) ;
 				$last_update=pg_result($bmarks_qry,$lt,2) ;
-				$notes=htmlentities(pg_result($bmarks_qry,$lt,3)) ;
-				$name=htmlentities(pg_result($bmarks_qry,$lt,4)) ;
+				$notes=htmlspecialchars_decode(htmlentities(pg_result($bmarks_qry,$lt,3))) ;
+				$name=htmlspecialchars_decode(htmlentities(pg_result($bmarks_qry,$lt,4))) ;
 				$owner=pg_result($bmarks_qry,$lt,5) ;
 				
 				$tags_sql="SELECT tag FROM bmarks WHERE url='$url' " ;
@@ -464,8 +467,8 @@ function show_tags(){
 					$a30_marker='*&nbsp;' ;
 				}
 			}else{
-				$user_num_bmarks='20' ;
-				$limit_sql=' LIMIT 20' ;
+				$user_num_bmarks='10' ;
+				$limit_sql=' LIMIT 10' ;
 			}
 			// pagination setup
 			$page=(!isset($_GET['page']))? 1 : $_GET['page'] ;  
@@ -514,8 +517,8 @@ function show_tags(){
 						$last_update=pg_result($bmark_qry,$lt,1) ;
 						$owner=pg_result($bmark_qry,$lt,2) ;
 						$url=pg_result($bmark_qry,$lt,3) ;
-						$notes=htmlentities(pg_result($bmark_qry,$lt,4)) ;
-						$name=htmlentities(pg_result($bmark_qry,$lt,5)) ;
+						$notes=str_replace('&amp;quot;','"',str_replace('&amp;#039;',"'",htmlentities(pg_result($bmark_qry,$lt,4)))) ;
+						$name=str_replace('&amp;quot;','"',str_replace('&amp;#039;',"'",htmlentities(pg_result($bmark_qry,$lt,5)))) ;
 					
 						if(strlen($notes)){
 							$notes_string='<BR><span class="small"><B>' . $notes . '</B></span>' ;
@@ -601,6 +604,7 @@ function add_bmark_db($username){
 				if($tag_count==0){
 					// if the tag doesn't exist, insert it
 					if(strlen($tag)){
+						$tag=htmlentities($tag,ENT_QUOTES) ;
 						$addUserTag_sql="INSERT INTO tags (owner,tag) VALUES ('$username','$tag')" ;
 						$addUserTag_qry=pg_query($db,$addUserTag_sql) ;
 						if(!$addUserTag_qry){
@@ -612,6 +616,8 @@ function add_bmark_db($username){
 					}
 				}
 			}
+			$bmark_name=htmlentities($bmark_name,ENT_QUOTES) ;
+			$bmark_notes=htmlentities($bmark_notes,ENT_QUOTES) ;
 			$addBmark_sql="INSERT INTO bmarks (owner,url,notes,tag,name) VALUES ('$username','$bmark_url','$bmark_notes','$tag','$bmark_name')" ;
 			$addBmark_qry=pg_query($db,$addBmark_sql) ;
 			if(!$addBmark_qry){
@@ -845,6 +851,7 @@ function insert_bmark ($username,$bmark_url,$bmark_name,$bmark_tags_array) {
 				if($tag_count==0){
 					// if the tag doesn't exist, insert it
 					if(strlen($tag)){
+						$tag=htmlentities($tag,ENT_QUOTES) ;
 						$addUserTag_sql="INSERT INTO tags (owner,tag) VALUES ('$username','$tag')" ;
 						$addUserTag_qry=pg_query($db,$addUserTag_sql) ;
 						if(!$addUserTag_qry){
@@ -861,10 +868,12 @@ function insert_bmark ($username,$bmark_url,$bmark_name,$bmark_tags_array) {
 			$check_dup_qry=pg_query($db,$check_dup_sql) ;
 			$dup_count=pg_result($check_dup_qry,0,0) ;
 			if($dup_count==0){
+				$bmark_name=htmlentities($bmark_name,ENT_QUOTES) ;
+				$bmark_notes=htmlentities($bmark_notes,ENT_QUOTES) ;
 				$addBmark_sql="INSERT INTO bmarks (owner,url,notes,tag,name) VALUES ('$username','$bmark_url','$bmark_notes','$tag','$bmark_name')" ;
 				$addBmark_qry=pg_query($db,$addBmark_sql) ;
 				if(!$addBmark_qry){
-					echo '<span class="bad">Bookmark INSERT FAILED: <BR>' . htmlentities($addBmark_sql) . '<BR>' ;
+					echo '<span class="bad">Bookmark INSERT FAILED: <BR>' ;
 					echo pg_last_error() . '</span><BR><BR>';
 					$tr_end = pg_query($db,'ROLLBACK;');
 					pg_close($db) ;
