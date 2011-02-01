@@ -1,6 +1,10 @@
 CHANGELOG
 ==========
 
+* January 31, 2011:	version 1.1
+	- pagination and bookmarks/page functionality added
+	- bookmark bulk import functionality added to 'Account Management'
+	- numerous bug fixes
 
 * January 24, 2011:	version 1.0
 	- initial release
