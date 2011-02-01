@@ -228,3 +228,6 @@ input {
 	background:#89997B;
 	list-style:none;
 }
+ul { 
+	list-style-type: none; 
+}
