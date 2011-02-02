@@ -129,7 +129,7 @@ function edit_bmarks_form(){
                 			echo '<span class="big">Click below to add your pre-existing tags to the bookmark above:</span><BR><BR>' ;
                 			$row_tag_count=0 ;
                 			for ($tagid=0; $tagid < $num_users_tags ; $tagid++){
-                        			$tagname=htmlentities(trim(pg_result($all_tags_qry,$tagid,0))) ;
+                        			$tagname=htmlentities(trim(pg_result($all_tags_qry,$tagid,0)), ENT_QUOTES,"UTF-8") ;
                         			echo '<A onclick="document.getElementById(\'tags\').value=document.getElementById(\'tags\').value + \' \' + \'' . $tagname . '\';">' . $tagname . '</a>&nbsp;&nbsp;' ;
                         			$row_tag_count++ ;
                         			// only display 10 tags per row
@@ -203,7 +203,7 @@ function edit_bmarks_process(){
 			if($tag_count==0){
 				// if the tag doesn't exist, insert it as long as its not just white space
 				if(strlen(trim($tag))){
-					$tag=htmlentities($tag,ENT_QUOTES) ;
+					$tag=htmlentities($tag,ENT_QUOTES, "UTF-8") ;
 					$addUserTag_sql="INSERT INTO tags (owner,tag) VALUES ('$username','$tag')" ;
 					$addUserTag_qry=pg_query($db,$addUserTag_sql) ;
 					if(!$addUserTag_qry){
@@ -215,8 +215,8 @@ function edit_bmarks_process(){
 				}
 			}
 		}
-		$bmark_notes=htmlentities($bmark_notes,ENT_QUOTES) ;
-		$bmark_name=htmlentities($bmark_name,ENT_QUOTES) ;
+		$bmark_notes=htmlentities($bmark_notes,ENT_QUOTES, "UTF-8") ;
+		$bmark_name=htmlentities($bmark_name,ENT_QUOTES, "UTF-8") ;
 		$addBmark_sql="INSERT INTO bmarks (owner,url,notes,tag,name,created) VALUES ('$username','$bmark_url','$bmark_notes','$tag','$bmark_name','$old_created')" ;
 		$addBmark_qry=pg_query($db,$addBmark_sql) ;
 		if(!$addBmark_qry){
@@ -320,8 +320,8 @@ function show_bmarks(){
 				$url=pg_result($bmarks_qry,$lt,0) ;
 				$id=pg_result($bmarks_qry,$lt,1) ;
 				$last_update=pg_result($bmarks_qry,$lt,2) ;
-				$notes=htmlspecialchars_decode(htmlentities(pg_result($bmarks_qry,$lt,3))) ;
-				$name=htmlspecialchars_decode(htmlentities(pg_result($bmarks_qry,$lt,4))) ;
+				$notes=str_replace('&amp;quot;','"',str_replace('&amp;#039;',"'",htmlspecialchars_decode(htmlentities(pg_result($bmarks_qry,$lt,3))))) ;
+				$name=str_replace('&amp;quot;','"',str_replace('&amp;#039;',"'",htmlspecialchars_decode(htmlentities(pg_result($bmarks_qry,$lt,4))))) ;
 				$owner=pg_result($bmarks_qry,$lt,5) ;
 				
 				$tags_sql="SELECT tag FROM bmarks WHERE url='$url' " ;
@@ -604,7 +604,7 @@ function add_bmark_db($username){
 				if($tag_count==0){
 					// if the tag doesn't exist, insert it
 					if(strlen($tag)){
-						$tag=htmlentities($tag,ENT_QUOTES) ;
+						$tag=htmlentities($tag,ENT_QUOTES,"UTF-8") ;
 						$addUserTag_sql="INSERT INTO tags (owner,tag) VALUES ('$username','$tag')" ;
 						$addUserTag_qry=pg_query($db,$addUserTag_sql) ;
 						if(!$addUserTag_qry){
@@ -616,8 +616,8 @@ function add_bmark_db($username){
 					}
 				}
 			}
-			$bmark_name=htmlentities($bmark_name,ENT_QUOTES) ;
-			$bmark_notes=htmlentities($bmark_notes,ENT_QUOTES) ;
+			$bmark_name=htmlentities($bmark_name,ENT_QUOTES,"UTF-8") ;
+			$bmark_notes=htmlentities($bmark_notes,ENT_QUOTES,"UTF-8") ;
 			$addBmark_sql="INSERT INTO bmarks (owner,url,notes,tag,name) VALUES ('$username','$bmark_url','$bmark_notes','$tag','$bmark_name')" ;
 			$addBmark_qry=pg_query($db,$addBmark_sql) ;
 			if(!$addBmark_qry){
@@ -868,8 +868,8 @@ function insert_bmark ($username,$bmark_url,$bmark_name,$bmark_tags_array) {
 			$check_dup_qry=pg_query($db,$check_dup_sql) ;
 			$dup_count=pg_result($check_dup_qry,0,0) ;
 			if($dup_count==0){
-				$bmark_name=htmlentities($bmark_name,ENT_QUOTES) ;
-				$bmark_notes=htmlentities($bmark_notes,ENT_QUOTES) ;
+				$bmark_name=htmlentities($bmark_name,ENT_QUOTES,"UTF-8") ;
+				$bmark_notes=htmlentities($bmark_notes,ENT_QUOTES,"UTF-8") ;
 				$addBmark_sql="INSERT INTO bmarks (owner,url,notes,tag,name) VALUES ('$username','$bmark_url','$bmark_notes','$tag','$bmark_name')" ;
 				$addBmark_qry=pg_query($db,$addBmark_sql) ;
 				if(!$addBmark_qry){
