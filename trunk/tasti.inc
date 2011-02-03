@@ -652,6 +652,16 @@ function add_bmark(){
 // add a new bookmark form
 function add_bmark_form($edit=null){
 	global $db ;
+	$name='' ;
+	$url='' ;
+	
+	if(isset($_GET['url'])){
+		$url=$_GET['url'] ;
+	}
+	if(isset($_GET['name'])){
+		$name=$_GET['name'] ;
+	}
+	
 	$username=$_COOKIE['tasti_username'] ;
 	$tags_sql="SELECT tag FROM tags WHERE owner='$username' ORDER BY tag LIMIT 100" ;
 	$tags_query=pg_query($db,$tags_sql) ;
@@ -659,8 +669,8 @@ function add_bmark_form($edit=null){
 	
 	echo '<span class="huge">Add a new bookmark to <B>Tasti</B>:</span><BR><BR>' ;
 	echo '<FORM method="POST" action="add.php" id="add_bmark"><TABLE>
-		<TR><TD>Name/Description*:&nbsp;</TD><TD>&nbsp;</TD><TD><INPUT TYPE="text" NAME="name" id="name" size="55"></TD></TR>
-		<TR><TD>URL*:&nbsp;</TD><TD>&nbsp;</TD><TD><INPUT TYPE="text" NAME="url" id="url" size="55"></TD></TR>
+		<TR><TD>Name/Description*:&nbsp;</TD><TD>&nbsp;</TD><TD><INPUT TYPE="text" NAME="name" id="name" size="55" value="' . $name . '"></TD></TR>
+		<TR><TD>URL*:&nbsp;</TD><TD>&nbsp;</TD><TD><INPUT TYPE="text" NAME="url" id="url" size="55" value="' . $url . '"></TD></TR>
 		<TR><TD>Notes:&nbsp;</TD><TD>&nbsp;</TD><TD><INPUT TYPE="text" NAME="notes" id="notes" size="55"></TD></TR>
 		<TR><TD>Tags:&nbsp;</TD><TD>&nbsp;</TD><TD><INPUT TYPE="text" NAME="tags" id="tags" size="55"></TD></TR>
 		<TR><TD>&nbsp;</TD><TD>&nbsp;</TD><TD>&nbsp;</TD><TD>&nbsp;</TD></TR>
@@ -762,9 +772,15 @@ function generate_tabs (){
 	}else{
 		$importSelected='' ;
 	}
+	if($pagename=='bmarklet.php'){
+		$bmarkletSelected='id="selected"' ;
+	}else{
+		$bmarkletSelected='' ;
+	}
 	echo '<div id="tabs"><ul>
 		<li ' . $accountSelected . '><a href="account.php">Details</a></li><!-- these comments between lis solve a bug in IE that prevents spaces appearing between list items that appear on different lines in the source
-			--><li ' . $importSelected . '><a href="import.php">Import&nbsp;Bookmarks</a></li><!-- ' ;
+			--><li ' . $importSelected . '><a href="import.php">Import&nbsp;Bookmarks</a></li><!-- these comments between lis solve a bug in IE that prevents spaces appearing between list items that appear on different lines in the source
+			--><li ' . $bmarkletSelected . '><a href="bmarklet.php">Bookmarklet</a></li><!-- ' ;
 			// --><li><a href="#">The Other</a></li><!--
 			// --><li><a href="#">Banana</a></li> 
 		echo '--></ul>
@@ -932,12 +948,24 @@ function account_mgmt(){
 			}else{
 				bmark_import_form() ;
 			}
+		}elseif($pagename=='bmarklet.php'){
+			show_Bmarklet() ;
 		}else{
 			echo '<BR>Unknown function<BR><BR>' ;
 		}
 	}else{
 		echo '<BR>This page is only accessible to users who have <A HREF="login.php?do=0">logged in</a>.<BR><BR>' ;
 	}	
+}
+
+// show the add bookmark bookmarklet link
+function show_Bmarklet () {
+	$add_bmark_url=dirname($_SERVER['SCRIPT_URI']) ;
+	$bmarklet_string="javascript:(function(){f='" . $add_bmark_url . "/add.php?url='+encodeURIComponent(window.location.href)+'&name='+encodeURIComponent(document.title)+'&notes='+encodeURIComponent(''+(window.getSelection?window.getSelection():document.getSelection?document.getSelection():document.selection.createRange().text));a=function(){if(!window.open(f+'noui=1&jump=doclose','d','location=yes,links=no,scrollbars=no,toolbar=no,width=550,height=550'))location.href=f+'jump=yes'};if(/Firefox/.test(navigator.userAgent)){setTimeout(a,0)}else{a()}})()";
+	
+	echo '<BR><span class="huge">&nbsp;A bookmarklet is a link that you add to your browser\'s Toolbar. It makes it easy to add a new bookmark to <B>Tasti</B>.</span><BR><BR>
+		Drag the link below to your toolbar, and then you can click that link when viewing any web page to quickly & easily add it as a bookmark.<BR><BR><BR>
+		<CENTER><A HREF="' . $bmarklet_string . '"><B>Add to Tasti</B></a></CENTER><BR><BR><BR>' ;
 }
 
 // registration form
