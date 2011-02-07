@@ -281,12 +281,21 @@ function show_bmarks(){
 	
 	if(isset($_GET['whose']) && $_GET['whose']=='mine' && hash_check()){
 		$username=$_COOKIE['tasti_username'] ;
+		$whose='mine' ;
 		$url_get_base=basename($_SERVER['REQUEST_URI']) . '&' ;
 		$num_bmarks_menu_offset='77' ;
 		$bmarks_intro='<span class="huge">Your bookmarks:</span><BR><BR>' ;
 		$bmarks_sql_all="SELECT distinct ON (url) url,id,date(last_update) AS last_update,notes,name,owner FROM bmarks WHERE owner='$username' ORDER BY	url,last_update" ;
+	}elseif(isset($_GET['whose']) && $_GET['whose']!='mine'){
+		$owner0=$_GET['whose'] ;
+		$whose=$owner0 ;
+		$url_get_base=basename($_SERVER['REQUEST_URI']) . '&' ;
+		$num_bmarks_menu_offset='177' ;
+		$bmarks_intro='<span class="huge">' . $owner0 . '\'s&nbsp;bookmarks:</span><BR><BR>' ;
+		$bmarks_sql_all="SELECT distinct ON (url) url,id,date(last_update) AS last_update,notes,name,owner FROM bmarks WHERE owner='$owner0' ORDER BY	url,last_update" ;
 	}else{
 		$num_bmarks_menu_offset='73' ;
+		$whose='' ;
 		$url_get_base=basename($_SERVER['REQUEST_URI']) . '?' ;
 		$bmarks_intro='<span class="huge">Recent bookmarks:</span><BR><BR>' ;
 		$bmarks_sql_all="SELECT distinct ON (url) url,id,date(last_update) AS last_update,notes,name,owner FROM bmarks ORDER BY url,last_update" ;
@@ -343,7 +352,7 @@ function show_bmarks(){
 					if(isset($username)){
 						$bmark_user_edit_string='<BR><A HREF="edit.php?id=' . $id . '&func=edit"><span class="normal"><B>EDIT</B></a>&nbsp;|&nbsp;<A HREF="bmarks.php?id=' . $id . '&func=del"><B>DELETE</B></a>&nbsp;</span>' ;
 					}else{
-						$bmark_user_edit_string='' ;
+						$bmark_user_edit_string='<BR><span class="normal">Created by <A HREF="bmarks.php?whose=' . $owner . '"><B>' . $owner . '</B></a>&nbsp;</span>' ;
 					}
 				
 					echo '<TABLE><TR><TD valign="top"><span class="big">' . $last_update . '&nbsp;&nbsp;&nbsp;</span></TD><TD width="65%"><span class="big"><A HREF="' . $url . '">' . $name . '</a></span>' . $notes_string . $bmark_user_edit_string . '</TD>'  ;
@@ -381,13 +390,17 @@ function show_bmarks(){
 
 			// Create a PREV link if one is needed 
                         if($page > 1) {
-				$pagination.='<A STYLE="text-decoration:none" title="PREVIOUS PAGE" HREF="bmarks.php?whose=mine&page=' . $prev . '&num=' . $user_num_bmarks;
+				$pagination.='<A STYLE="text-decoration:none" title="PREVIOUS PAGE" HREF="bmarks.php?whose=' . $whose . '&page=' . $prev . '&num=' . $user_num_bmarks;
 				$pagination .= '"><span class="huge"><H1>&larr;</H1></span></A> ' ;
 			}
 
+			if(!strlen($whose)){
+				$page=0 ;
+				$total_pages=0 ;
+			}
 			// Create a NEXT link if one is needed
                         if($page < $total_pages){
-				$pagination .= '<A STYLE="text-decoration:none" title="NEXT PAGE" HREF="bmarks.php?whose=mine&page=' . $next . '&num=' . $user_num_bmarks;  ;
+				$pagination .= '<A STYLE="text-decoration:none" title="NEXT PAGE" HREF="bmarks.php?whose=' . $whose . '&page=' . $next . '&num=' . $user_num_bmarks;  ;
 				$pagination .= '"><span class="huge"><H1>&rarr;</H1></span></A>' ;
 			}else{
                                 // adjust the total count when on the last page since it might not have $user_num_bmarks items remaining
