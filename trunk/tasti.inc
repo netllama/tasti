@@ -790,12 +790,16 @@ function generate_tabs (){
 	}else{
 		$bmarkletSelected='' ;
 	}
+	if($pagename=='edit_tags.php'){
+		$tagSelected='id="selected"' ;
+	}else{
+		$tagSelected='' ;
+	}
 	echo '<div id="tabs"><ul>
 		<li ' . $accountSelected . '><a href="account.php">Details</a></li><!-- these comments between lis solve a bug in IE that prevents spaces appearing between list items that appear on different lines in the source
 			--><li ' . $importSelected . '><a href="import.php">Import&nbsp;Bookmarks</a></li><!-- these comments between lis solve a bug in IE that prevents spaces appearing between list items that appear on different lines in the source
-			--><li ' . $bmarkletSelected . '><a href="bmarklet.php">Bookmarklet</a></li><!-- ' ;
-			// --><li><a href="#">The Other</a></li><!--
-			// --><li><a href="#">Banana</a></li> 
+			--><li ' . $bmarkletSelected . '><a href="bmarklet.php">Bookmarklet</a></li><!-- these comments between lis solve a bug in IE that prevents spaces appearing between list items that appear on different lines in the source
+			--><li ' . $tagSelected . '><a href="edit_tags.php">Tags</a></li><!-- ' ;
 		echo '--></ul>
 		</div>' ;
 	return $pagename ;
@@ -963,12 +967,125 @@ function account_mgmt(){
 			}
 		}elseif($pagename=='bmarklet.php'){
 			show_Bmarklet() ;
+		}elseif($pagename=='edit_tags.php'){
+			edit_tags() ;
 		}else{
 			echo '<BR>Unknown function<BR><BR>' ;
 		}
 	}else{
 		echo '<BR>This page is only accessible to users who have <A HREF="login.php?do=0">logged in</a>.<BR><BR>' ;
 	}	
+}
+
+// delete tags
+function delete_tags ($taglist) {
+	global $db ;
+	$username=$_COOKIE['tasti_username'] ;
+	
+	$tr_status=0 ;
+	$tr_begin=pg_query($db,'BEGIN;');
+	$tag_count=count($taglist) ;
+	foreach($taglist AS $tagid){
+		// get the tag name 
+		$tag_name_sql="SELECT tag FROM tags WHERE id='$tagid' AND owner='$username'" ;
+		$tag_name_qry=pg_query($db,$tag_name_sql) ;
+		if(!$tag_name_qry){
+			$tr_end = pg_query($db,'ROLLBACK;');
+			echo '<span class="bad">Tag name query FAILED<BR>' ;
+			echo pg_last_error() . '</span><BR><BR>';
+			$tr_status=1 ;
+			break ;
+		}
+		$tag_name=pg_result($tag_name_qry,0,0) ;
+		
+		// remove the tag from any associated bookmarks
+		$remove_tag_from_bmark_sql="UPDATE bmarks SET tag=null WHERE owner='$username' AND tag='$tag_name'" ;
+		$remove_tag_from_bmark_qry=pg_query($db,$remove_tag_from_bmark_sql) ;
+		if(!$remove_tag_from_bmark_qry){
+			$tr_end = pg_query($db,'ROLLBACK;');
+			echo '<span class="bad">Tag update FAILED<BR>' ;
+			echo pg_last_error() . '</span><BR><BR>';
+			$tr_status=1 ;
+			break ;
+		}
+		
+		// delete the tag
+		$tag_del_sql="DELETE FROM tags WHERE owner='$username' AND id='$tagid'" ;
+		$tag_del_qry=pg_query($db,$tag_del_sql) ;
+		if(!$tag_del_qry){
+			$tr_end = pg_query($db,'ROLLBACK;');
+			echo '<span class="bad">Tag deletion FAILED<BR>' ;
+			echo pg_last_error() . '</span><BR><BR>';
+			$tr_status=1 ;
+			break ;
+		}
+	}
+	// commit as long as nothing above failed
+	if(!$tr_status){
+		$tr_end=pg_query($db,'COMMIT;');
+		if($tag_count>1){
+			$pl='s' ;
+		}else{
+			$pl='' ;
+		}
+		echo '<BR>&nbsp;<span class="huge">' . $tag_count . ' tag' . $pl . ' deleted successfully.</span><BR><BR><BR>' ;
+	}
+}
+
+// rename tags
+function tag_rename($taglist) {
+	echo '' ;
+}
+
+// manage edit/delete of tags
+function edit_tags () {
+	global $db ;
+	$username=$_COOKIE['tasti_username'] ;
+	
+	if(isset($_POST['submit']) && isset($_POST['taglist'])){
+		$opt_type=$_POST['submit'] ;
+		if($opt_type=="RENAME"){
+			tag_rename($_POST['taglist']) ;
+		}elseif($opt_type=="DELETE"){
+			delete_tags($_POST['taglist']) ;
+		}
+	}
+	
+	$tag_list_sql="SELECT id,tag FROM tags WHERE owner='$username' ORDER BY tag" ;
+	$tag_list_qry=pg_query($db,$tag_list_sql) ;
+	if(!$tag_list_qry){
+		echo '<BR><span class="bad">Tag query failed.<BR><BR>' ;
+		echo pg_last_error() . '</span><BR><BR>';
+		exit() ;
+	}
+	$tag_count=pg_num_rows($tag_list_qry) ;
+	if($tag_count>0){
+		echo '<BR><span class="huge">Check the tags that you want to delete or rename:</span>' ;
+		echo '<FORM method="POST" action="edit_tags.php" id="edit_tags">' ;
+		echo '<span class="normal">&nbsp;Toggle all&nbsp;</span><INPUT TYPE="checkbox" onclick="toggle(\'chkbox1\')"><BR><BR>' ;
+		echo '<CENTER><div id="chkbox1"><TABLE><TR>' ;
+		
+		$row_count=0 ;
+		for($lt=0 ; $lt <$tag_count ; $lt++){
+			$id=pg_result($tag_list_qry,$lt,0) ;
+			$tag=pg_result($tag_list_qry,$lt,1) ;
+			
+			echo '<TD><INPUT type="checkbox" id="' . $id . '"  name="taglist[]" value="' . $id . '" >&nbsp;<label for="' . $id . '"><span class="big">' . $tag .
+			'</span></label>&nbsp;&nbsp;&nbsp;<BR>&nbsp;</TD>' ;
+			
+			$row_count++ ;
+			if($row_count>4){
+				echo '</TR><TR>' ;
+				$row_count=0 ;
+			}
+		}
+		echo '</TR></TABLE></DIV><INPUT type="submit" name="submit" value="DELETE" />&nbsp;&nbsp;<INPUT name="submit" type="submit" value="RENAME" />' ;
+		
+		echo '</CENTER></FORM><BR><BR>' ;
+	}else{
+		echo '<BR><span class="huge">&nbsp;You do not have any tags to edit at this time.  Try <A HREF="add.php">adding</a> a bookmark to create new
+		tags</span><BR><BR><BR>' ;
+	}
 }
 
 // show the add bookmark bookmarklet link
