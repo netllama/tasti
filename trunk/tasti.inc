@@ -1033,8 +1033,54 @@ function delete_tags ($taglist) {
 }
 
 // rename tags
-function tag_rename($taglist) {
-	echo '' ;
+function tag_rename($tagname) {
+	global $db ;
+	$username=$_COOKIE['tasti_username'] ;
+	$tr_status=0 ;
+	$tr_begin=pg_query($db,'BEGIN;');
+	
+	foreach($tagname as $id=>$tag){
+		$new_tag_name=trim(htmlentities($tag, ENT_QUOTES,'UTF-8')) ;
+		// only rename if the new tag name is at least 1 char long
+		if(strlen($new_tag_name)){
+			$old_tag_name_sql="SELECT tag FROM tags WHERE owner='$username' AND id='$id' LIMIT 1" ;
+			$old_tag_name_qry=pg_query($db,$old_tag_name_sql) ;
+			if(!$old_tag_name_qry){
+				$tr_end = pg_query($db,'ROLLBACK;');
+				echo '<span class="bad">Tag name query FAILED<BR>' ;
+				echo pg_last_error() . '</span><BR><BR>';
+				$tr_status=1 ;
+				break ;
+			}
+			$old_tag_name=pg_result($old_tag_name_qry,0,0) ;
+		
+			$bmark_tag_rename_sql="UPDATE bmarks SET tag='$new_tag_name' WHERE owner='$username' AND tag='$old_tag_name'" ;
+			$bmark_tag_rename_qry=pg_query($db,$bmark_tag_rename_sql) ;
+			if(!$bmark_tag_rename_qry){
+				$tr_end = pg_query($db,'ROLLBACK;');
+				echo '<span class="bad">Tag bookmark rename query FAILED<BR>' ;
+				echo pg_last_error() . '</span><BR><BR>';
+				$tr_status=1 ;
+				break ;
+			}
+			
+			$tag_rename_sql="UPDATE tags SET tag='$new_tag_name',last_update=now() WHERE owner='$username' AND id='$id'" ;
+			$tag_rename_qry=pg_query($db,$tag_rename_sql) ;
+			if(!$tag_rename_qry){
+				$tr_end = pg_query($db,'ROLLBACK;');
+				echo '<span class="bad">Tag rename query FAILED<BR>' ;
+				echo pg_last_error() . '</span><BR><BR>';
+				$tr_status=1 ;
+				break ;
+			}
+		}
+	}
+	
+	// commit as long as nothing above failed
+	if(!$tr_status){
+		$tr_end=pg_query($db,'COMMIT;');
+		echo '<BR>&nbsp;<span class="huge">Tags successfully renamed.</span><BR><BR><BR>' ;
+	}
 }
 
 // manage edit/delete of tags
@@ -1044,10 +1090,13 @@ function edit_tags () {
 	
 	if(isset($_POST['submit']) && isset($_POST['taglist'])){
 		$opt_type=$_POST['submit'] ;
-		if($opt_type=="RENAME"){
-			tag_rename($_POST['taglist']) ;
-		}elseif($opt_type=="DELETE"){
+		if($opt_type=="DELETE"){
 			delete_tags($_POST['taglist']) ;
+		}
+	}elseif(isset($_POST['submit'])){
+		$opt_type=$_POST['submit'] ;
+		if($opt_type=="RENAME"){
+			tag_rename($_POST['tagname']) ;
 		}
 	}
 	
@@ -1060,7 +1109,7 @@ function edit_tags () {
 	}
 	$tag_count=pg_num_rows($tag_list_qry) ;
 	if($tag_count>0){
-		echo '<BR><span class="huge">Check the tags that you want to delete or rename:</span>' ;
+		echo '<BR><span class="huge">Edit the tags that you wish to rename, or check the tags that you want to delete:</span>' ;
 		echo '<FORM method="POST" action="edit_tags.php" id="edit_tags">' ;
 		echo '<span class="normal">&nbsp;Toggle all&nbsp;</span><INPUT TYPE="checkbox" onclick="toggle(\'chkbox1\')"><BR><BR>' ;
 		echo '<CENTER><div id="chkbox1"><TABLE><TR>' ;
@@ -1070,8 +1119,7 @@ function edit_tags () {
 			$id=pg_result($tag_list_qry,$lt,0) ;
 			$tag=pg_result($tag_list_qry,$lt,1) ;
 			
-			echo '<TD><INPUT type="checkbox" id="' . $id . '"  name="taglist[]" value="' . $id . '" >&nbsp;<label for="' . $id . '"><span class="big">' . $tag .
-			'</span></label>&nbsp;&nbsp;&nbsp;<BR>&nbsp;</TD>' ;
+			echo '<TD><INPUT type="checkbox" id="' . $id . '"  name="taglist[]" value="' . $id . '" >&nbsp;<span class="big"><INPUT TYPE="text" NAME="tagname[' . $id . ']" id="tag" size="15" VALUE="' . $tag . '"></span>&nbsp;&nbsp;&nbsp;<BR>&nbsp;</TD>' ;
 			
 			$row_count++ ;
 			if($row_count>4){
