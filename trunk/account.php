@@ -1,9 +1,10 @@
+<html lang='en'>
 <?php
 	include ("tasti.inc") ;
 	$isAuthenticated=login_check();
 ?>
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<title>Tasti - Account Management</title>
 	<link rel="stylesheet" type="text/css" href="css/main.css" />
 	<link rel="stylesheet" type="text/css" href="css/jquery.validity.css" />
@@ -56,3 +57,4 @@
 	</div>   
 </div>
 </body>
+</html>
