@@ -252,6 +252,11 @@ function edit_bmarks(){
 // show bookmarks
 function show_bmarks(){
 	global $db ;
+	if(isset($_COOKIE['tasti_bmarks_per_page'])){
+		$bmarks_per_page=$_COOKIE['tasti_bmarks_per_page'] ; 
+	}else{
+		$bmarks_per_page=15 ;
+	}
 	$a5_marker='' ; $a10_marker='' ; $a15_marker='' ; $a20_marker='' ; $a30_marker='' ;
 	if(isset($_GET['num']) && is_numeric($_GET['num'])){
 		$user_num_bmarks=$_GET['num'] ;
@@ -267,9 +272,22 @@ function show_bmarks(){
 		}elseif($user_num_bmarks=='30'){
 			$a30_marker='*&nbsp;' ;
 		}
+		$expire=time()+(3600*24*LOGIN_AGE) ;
+		setcookie("tasti_bmarks_per_page",$user_num_bmarks,$expire) ;
 	}else{
-		$user_num_bmarks='10' ;
-		$limit_sql=' LIMIT 10' ;
+		$user_num_bmarks=$bmarks_per_page ;
+		$limit_sql=' LIMIT ' . $user_num_bmarks ;
+		if($user_num_bmarks=='5'){
+			$a5_marker='*&nbsp;' ;
+		}elseif($user_num_bmarks=='10'){
+			$a10_marker='*&nbsp;' ;
+		}elseif($user_num_bmarks=='15'){
+			$a15_marker='*&nbsp;' ;
+		}elseif($user_num_bmarks=='20'){
+			$a20_marker='*&nbsp;' ;
+		}elseif($user_num_bmarks=='30'){
+			$a30_marker='*&nbsp;' ;
+		}
 	}
 	// pagination setup
 	$page=(!isset($_GET['page']))? 1 : $_GET['page'] ;  
@@ -292,7 +310,7 @@ function show_bmarks(){
 		$url_get_base=basename($_SERVER['REQUEST_URI']) . '&' ;
 		$num_bmarks_menu_offset='177' ;
 		$bmarks_intro='<span class="huge">' . $owner0 . '\'s&nbsp;bookmarks:</span><BR><BR>' ;
-		$bmarks_sql_all="SELECT distinct ON (url) url,id,date(last_update) AS last_update,notes,name,owner FROM bmarks WHERE owner='$owner0' ORDER BY	url,last_update" ;
+		$bmarks_sql_all="SELECT distinct ON (url) url,id,date(last_update) AS last_update,notes,name,owner FROM bmarks WHERE owner='$owner0' ORDER BY url,last_update" ;
 	}else{
 		$num_bmarks_menu_offset='73' ;
 		$whose='' ;
@@ -464,6 +482,11 @@ function show_tags(){
 	}else{
 		$tag_count=pg_num_rows($tags_qry) ;
 		if($tag_count>0){
+			if(isset($_COOKIE['tasti_bmarks_per_page'])){
+				$bmarks_per_page=$_COOKIE['tasti_bmarks_per_page'] ; 
+			}else{
+				$bmarks_per_page=15 ;
+			}
 			$a5_marker='' ; $a10_marker='' ; $a15_marker='' ; $a20_marker='' ; $a30_marker='' ;
 			if(isset($_GET['num']) && is_numeric($_GET['num'])){
 				$user_num_bmarks=$_GET['num'] ;
@@ -479,9 +502,22 @@ function show_tags(){
 				}elseif($user_num_bmarks=='30'){
 					$a30_marker='*&nbsp;' ;
 				}
+				$expire=time()+(3600*24*LOGIN_AGE) ;
+				setcookie("tasti_bmarks_per_page",$user_num_bmarks,$expire) ;
 			}else{
-				$user_num_bmarks='10' ;
-				$limit_sql=' LIMIT 10' ;
+				$user_num_bmarks=$bmarks_per_page ;
+				$limit_sql=' LIMIT ' . $user_num_bmarks;
+				if($user_num_bmarks=='5'){
+					$a5_marker='*&nbsp;' ;
+				}elseif($user_num_bmarks=='10'){
+					$a10_marker='*&nbsp;' ;
+				}elseif($user_num_bmarks=='15'){
+					$a15_marker='*&nbsp;' ;
+				}elseif($user_num_bmarks=='20'){
+					$a20_marker='*&nbsp;' ;
+				}elseif($user_num_bmarks=='30'){
+					$a30_marker='*&nbsp;' ;
+				}
 			}
 			// pagination setup
 			$page=(!isset($_GET['page']))? 1 : $_GET['page'] ;  
@@ -1234,6 +1270,11 @@ function hash_check(){
 // verify login and create cookie
 function login_check(){
 	global $db ;
+	if(isset($_COOKIE['tasti_bmarks_per_page'])){
+		$bmarks_per_page=$_COOKIE['tasti_bmarks_per_page'] ; 
+	}else{
+		$bmarks_per_page=10 ;
+	}
 	if(isset($_POST['username']) && isset($_POST['password']) && strlen(trim($_POST['password'])) && strlen(trim($_POST['username']))){
 		$username=strtolower(trim($_POST['username'])) ;
 		$password=sha1(trim($_POST['password'])) ;
@@ -1249,11 +1290,13 @@ function login_check(){
 				$expire=time()+(3600*24*LOGIN_AGE) ;
 				setcookie("tasti_username",$username,$expire) ;
 				setcookie("tasti_hash",$password,$expire) ;
+				setcookie("tasti_bmarks_per_page",$bmarks_per_page,$expire) ;
 				return 1 ;
 			}else{
 				$expire=time()-100 ;
 				setcookie("tasti_username",$username,$expire) ;
 				setcookie("tasti_hash",$password,$expire) ;
+				setcookie("tasti_bmarks_per_page",$bmarks_per_page,$expire) ;
 				return 0 ;
 			}
 		}
@@ -1263,6 +1306,7 @@ function login_check(){
 		$expire=time()-100 ;
 		setcookie("tasti_username",$username,$expire) ;
 		setcookie("tasti_hash",$password,$expire) ;
+		setcookie("tasti_bmarks_per_page",$bmarks_per_page,$expire) ;
 		return 3 ;
 	}else{
 		return 2 ;
