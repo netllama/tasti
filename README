@@ -12,11 +12,11 @@ other.
 REQUIREMENTS
 -------------
 
-* An Apache web server (tested with httpd-2.2.17).  It might very well work with
+* An Apache web server (tested with httpd-2.2.17 & 2.4.25).  It might very well work with
 other web servers, however that is untested.  
 * PHP support (including the PostgreSQL database module).  Tested with php-5.3.5,
 however any php-5.x release should work
-* A functional PostgreSQL database installation.  Tested with PostgreSQL-8.4.6,
+* A functional PostgreSQL database installation.  Tested with PostgreSQL-8.4.6 & 9.4.12,
 however any 8.x or 9.x release should work.  Tasti is completely untested with
 any other RDMS (this includes MySQL).  If it works with any other SQL database, 
 that would be a complete accident.
@@ -82,9 +82,9 @@ tasti.sql .
 CONTACT INFO
 ------------
 
-Tasti is officially hosted via its Google Code website:
-https://code.google.com/p/tasti/
+Tasti is officially hosted on github: 
+https://github.com/netllama/tasti
 
 Please submit bugs or feature requests above.  If you are experiencing problems,
-or have questions, I can be contacted by emailing netllama+tasti@gmail.com .  I'l
+or have questions, I can be contacted by emailing netllama+tasti@gmail.com .  I'll
 try to respond within 24 hours.
